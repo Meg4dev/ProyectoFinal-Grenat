@@ -1,0 +1,54 @@
+<div>
+    Bienvenido a su tienda de instrumentos favorita, por favor ingrese los datos del producto que desea agregar.
+
+    <form id="add-product-form">
+        <input type="text" id="brand" name="brand" placeholder="Marca" required />
+        <input type="text" id="model" name="model" placeholder="Modelo" required />
+        <input type="number" id="price" name="price" placeholder="Precio" required />
+        <input type="number" id="stock" name="stock" placeholder="Stock" required />
+        <input type="text" id="category" name="category" placeholder="Categoría" required />
+        <button type="submit">Agregar Producto</button>
+    </form>
+
+    <a href="/home">Ir a Inicio</a>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.querySelector("#add-product-form");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault(); 
+
+            const productData = {
+                brand: document.querySelector("#brand").value,
+                model: document.querySelector("#model").value,
+                price: document.querySelector("#price").value,
+                stock: document.querySelector("#stock").value,
+                category: document.querySelector("#category").value
+            };
+
+            console.log("Enviando producto:", productData);
+
+            try {
+                const response = await fetch("/home", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(productData)
+                });
+
+                if (response.ok) {
+                    alert("Producto agregado correctamente");
+
+                    form.reset();
+                } else {
+                    alert("Error al agregar el producto");
+                }
+            } catch (error) {
+                alert("Error de conexión con el servidor");
+            }
+        });
+    });
+    </script>
+</div>
