@@ -1,22 +1,131 @@
-<div>
-  <h1>Bienvenido a la Tienda de Instrumentos</h1>
-  <h2>Productos Disponibles</h2>
+<div class="home-container">
+  <header class="home-header">
+    <h1>Bienvenido a la Tienda de Instrumentos</h1>
+    <p>Explora nuestra variedad de instrumentos disponibles</p>
+  </header>
 
-  <div class="product-cards">
-    {{#each products}}
-      <div class="product-card">
-        <h3>{{this.brand}} - {{this.model}}</h3>
-        <p>Precio: ${{this.price}}</p>
-        <p>Stock: {{this.stock}}</p>
-        <p>Categoría: {{this.category}}</p>
-        <p>-</p>
-        <a>ID: {{this.id}}</a>
-      </div>
+  <section id="product-list" class="products-grid">
+    <h2>Productos Disponibles</h2>
+    {{#if payload.length}}
+      {{#each payload}}
+        <div class="product-card">
+          <div class="product-details">
+            <h3>{{this.model}}</h3>
+            <p><strong>Marca:</strong> {{this.brand}}</p>
+            <p><strong>Precio:</strong> ${{this.price}}</p>
+            <p><strong>Disponibilidad:</strong> 
+              {{#if this.stock}}
+                Disponible ({{this.stock}} en stock)
+              {{else}}
+                <span class="out-of-stock">Agotado</span>
+              {{/if}}
+            </p>
+            <a href="/products/{{this._id}}" class="btn btn-details">Ver detalles</a>
+          </div>
+        </div>
+      {{/each}}
     {{else}}
-      <p>No hay productos disponibles.</p>
-    {{/each}}
-  </div>
+      <p>No hay productos disponibles en este momento.</p>
+    {{/if}}
+  </section>
 
-  <a href="/add-product">Agregar nuevo producto</a>
-  <a href="/real-time-products"> Ver Productos en Tiempo Real </a>
+  <nav class="pagination">
+    {{#if hasPrevPage}}
+      <a href="{{prevLink}}" class="btn btn-pagination">Anterior</a>
+    {{/if}}
+    <span>Página {{page}} de {{totalPages}}</span>
+    {{#if hasNextPage}}
+      <a href="{{nextLink}}" class="btn btn-pagination">Siguiente</a>
+    {{/if}}
+  </nav>
+
+  <footer class="home-footer">
+    <a href="/api/carts" class="btn btn-cart">Ir al carrito</a>
+  </footer>
 </div>
+
+<style>
+  .home-container {
+    width: 80%;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+  }
+
+  .home-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+  }
+
+  .product-card {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    text-align: center;
+    background-color: #f9f9f9;
+  }
+
+  .product-image {
+    width: 100%;
+    height: auto;
+    margin-bottom: 10px;
+    border-radius: 5px;
+  }
+
+  .product-details h3 {
+    margin: 10px 0;
+    font-size: 1.2em;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    margin-top: 10px;
+  }
+
+  .btn:hover {
+    background-color: #0056b3;
+  }
+
+  .btn-details {
+    background-color: #28a745;
+  }
+
+  .btn-details:hover {
+    background-color: #218838;
+  }
+
+  .btn-pagination {
+    margin: 5px;
+  }
+
+  .btn-cart {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .out-of-stock {
+    color: red;
+    font-weight: bold;
+  }
+
+  .pagination {
+    text-align: center;
+    margin: 20px 0;
+  }
+
+  .home-footer {
+    text-align: center;
+    margin-top: 30px;
+  }
+</style>

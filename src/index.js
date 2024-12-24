@@ -1,71 +1,139 @@
 import express from "express";
-import { Router } from "express";
-import productsRouter from "./routes/router.products.js";
 import { __dirname } from "./utils.js";
 import handlebars from "express-handlebars";
-import { Server } from "socket.io";
+import mongoose from "mongoose";
+import ecommerceProductsRouter from "./routes/ecommerceProducts.router.js";
+import ecommerceCartsRouter from "./routes/ecommerceCarts.router.js";
+import stockModel from "./models/products.model.js";
+import cartModel from "./models/carts.model.js"; // Importar el modelo de carrito
+import { v4 as uuidv4 } from 'uuid';
+
+// Conexión a MongoDB
+const DBPath = "mongodb+srv://rodrigrenat2021:rUBNhPDPxDayycey@cluster0.yu0lr.mongodb.net/ecommerceguitarras?retryWrites=true&w=majority&appName=Cluster0";
+const connectMongoDB = async () => {
+  try {
+    await mongoose.connect(DBPath);
+    console.log("Conexión exitosa a MongoDB");
+  } catch (error) {
+    console.error("Error al conectar a MongoDB:", error);
+  }
+};
 
 const app = express();
-const router = Router();
 const PORT = 8080;
-const httpServer = app.listen(PORT, () => {
-  console.log(
-    `Servidor http escuchando en el puerto ${PORT} de forma exitosa.`
-  );
-});
 
-const io = new Server(httpServer);
-let products = [];
-
-io.on("connection", (socket) => {
-  console.log("Cliente conectado");
-
-  socket.emit("updateProducts", products);
-
-
-  socket.on("deleteProductRequest", (id) => {
-    const productIndex = products.findIndex((product) => product.id === id);
-
-    if (productIndex !== -1) {
-
-      products.splice(productIndex, 1);
-
-
-      io.emit("deleteProduct", id);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Cliente desconectado");
-  });
-});
-
-app.get("/real-time-products", (req, res) => {
-  res.render("realTimeProducts");
-});
-
-app.use((req, res, next) => {
-  req.io = io;
-  req.products = products;
-  next();
-});
-
-app.engine("handlebars", handlebars.engine());
-app.set("views", __dirname + "/views");
-app.set("view engine", "handlebars");
-
+// Configuración del servidor
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname + "/public"));
 
-app.use("/home", productsRouter);
+// Configuración de Handlebars
+app.engine(
+  "handlebars",
+  handlebars.engine({
+    defaultLayout: false,
+    runtimeOptions: {
+      allowProtoPropertiesByDefault: true,
+      allowProtoMethodsByDefault: true,
+    },
+  })
+);
+app.set("views", __dirname + "/views");
+app.set("view engine", "handlebars");
 
-app.get("/add-product", (req, res) => {
-  res.render("addProduct");
+// Rutas principales
+app.use("/api/products", ecommerceProductsRouter); // Productos con filtros y paginación
+app.use("/api/carts", ecommerceCartsRouter); // Gestión del carrito
+
+// Ruta para renderizar la vista principal de productos
+app.get("/products", async (req, res) => {
+  try {
+    const { limit = 10, page = 1, sort, query } = req.query;
+
+    // Filtro por categoría o disponibilidad
+    const filter = query
+      ? {
+          $or: [
+            { category: { $regex: query, $options: "i" } }, // Filtrar por categoría
+            { stock: { $gte: 1 } }, // Filtrar por disponibilidad
+          ],
+        }
+      : {};
+
+    // Opciones de paginación y ordenamiento
+    const options = {
+      limit: parseInt(limit),
+      page: parseInt(page),
+      sort: sort ? { price: sort === "asc" ? 1 : -1 } : {},
+    };
+
+    // Obtener productos
+    const products = await stockModel.paginate(filter, options);
+
+    // Renderizar vista con productos
+    res.render("home", {
+      payload: products.docs.map((product) => product.toObject()),
+      totalPages: products.totalPages,
+      page: products.page,
+      hasPrevPage: products.hasPrevPage,
+      hasNextPage: products.hasNextPage,
+      prevLink: products.hasPrevPage
+        ? `/products?page=${products.prevPage}&limit=${limit}&sort=${sort}&query=${query}`
+        : null,
+      nextLink: products.hasNextPage
+        ? `/products?page=${products.nextPage}&limit=${limit}&sort=${sort}&query=${query}`
+        : null,
+    });
+  } catch (error) {
+    console.error("Error al renderizar productos:", error);
+    res.status(500).send("Error al cargar la página de productos");
+  }
 });
 
+// Ruta para renderizar los detalles de un producto
+app.get("/products/:pid", async (req, res) => {
+  try {
+    const { pid } = req.params;
+
+    // Buscar el producto
+    const product = await stockModel.findById(pid);
+
+    if (!product) {
+      return res.status(404).send({ status: "error", message: "Producto no encontrado" });
+    }
+
+    // Renderizar vista de detalles del producto
+    res.render("productDetails", { payload: product.toObject() });
+  } catch (error) {
+    console.error("Error al obtener detalles del producto:", error);
+    res.status(500).send("Error al cargar los detalles del producto");
+  }
+});
+
+// Ruta para renderizar la vista del carrito
+app.get("/cart", async (req, res) => {
+  try {
+    const cart = await cartModel.findOne(); // Obtener el carrito (ajustar según lógica)
+    res.render("cart", { payload: cart?.products || [] });
+  } catch (error) {
+    console.error("Error al cargar el carrito:", error);
+    res.status(500).send("Error al cargar el carrito");
+  }
+});
+
+app.get('/product/:id', (req, res) => {
+  const cartId = getCartId(); // Si ya tienes un cartId generado
+  res.render('productDetails', { cartId }); // Pasa cartId al renderizado de Handlebars
+});
+
+// Ruta de prueba
 app.get("/ping", (req, res) => {
   res.send("pong");
 });
 
-export default router;
+// Iniciar conexión con MongoDB y servidor
+connectMongoDB();
+
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
+});

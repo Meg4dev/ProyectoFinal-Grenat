@@ -1,0 +1,141 @@
+<div class="cart-container">
+  <h1>Tu carrito de compras</h1>
+
+  {{#if payload.length}}
+    <ul class="cart-items">
+      {{#each payload}}
+        <li class="cart-item">
+          <div class="item-details">
+            <div class="product-info">
+              <h3>{{this.product.model}}</h3>
+              <p><strong>Marca:</strong> {{this.product.brand}}</p>
+              <p><strong>Precio:</strong> ${{this.product.price}}</p>
+              <p><strong>Cantidad:</strong> {{this.quantity}}</p>
+            </div>
+          </div>
+          <div class="item-actions">
+            <form action="/api/carts/{{../cartId}}/products/{{this.product._id}}" method="POST">
+              <label for="quantity-{{this.product._id}}">Actualizar cantidad:</label>
+              <input type="number" id="quantity-{{this.product._id}}" name="quantity" value="{{this.quantity}}" min="1">
+              <button type="submit">Actualizar</button>
+            </form>
+            <button class="delete-btn" onclick="removeFromCart('{{this.product._id}}')">Eliminar</button>
+          </div>
+        </li>
+      {{/each}}
+    </ul>
+
+    <div class="cart-summary">
+      <h2>Resumen del carrito</h2>
+      <p><strong>Total de productos:</strong> {{payload.length}}</p>
+      <p><strong>Total:</strong> ${{calculateTotal payload}}</p>
+      <button class="clear-cart-btn" onclick="clearCart()">Vaciar carrito</button>
+    </div>
+  {{else}}
+    <p>Tu carrito está vacío.</p>
+  {{/if}}
+
+  <div class="actions">
+    <a href="/products" class="btn btn-primary">Volver a la tienda</a>
+  </div>
+</div>
+
+<script>
+  
+  async function removeFromCart(productId) {
+    const response = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+      method: "DELETE",
+    });
+    const result = await response.json();
+    if (result.status === "success") {
+      alert("Producto eliminado del carrito.");
+      window.location.reload();
+    } else {
+      alert("Error al eliminar el producto.");
+    }
+  }
+
+
+  async function clearCart() {
+    const response = await fetch(`/api/carts/${cartId}}`, {
+      method: "DELETE",
+    });
+    const result = await response.json();
+    if (result.status === "success") {
+      alert("Carrito vaciado.");
+      window.location.reload();
+    } else {
+      alert("Error al vaciar el carrito.");
+    }
+  }
+</script>
+
+<style>
+  .cart-container {
+    width: 80%;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+  }
+
+  .cart-items {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  .cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+
+  .item-details {
+    display: flex;
+    align-items: center;
+  }
+
+  .product-image {
+    width: 100px;
+    height: auto;
+    margin-right: 15px;
+  }
+
+  .item-actions {
+    text-align: right;
+  }
+
+  .btn,
+  button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    text-decoration: none;
+    border-radius: 5px;
+  }
+
+  .btn:hover,
+  button:hover {
+    background-color: #0056b3;
+  }
+
+  .clear-cart-btn {
+    background-color: #dc3545;
+  }
+
+  .clear-cart-btn:hover {
+    background-color: #b02a37;
+  }
+
+  .cart-summary {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+  }
+</style>
